@@ -24,6 +24,9 @@ constexpr uint32_t ICON_HEATPUMP = 0xF1A43;  // heat-pump
 constexpr float IDLE_W = 20.f;
 
 enum Slot : uint8_t { SOLAR, GRID, HOME, BATTERY, WALLBOX, HEATPUMP, NODES };
+// The lines: one from each circle to the house (in the slot of that circle, none for the house), and the three that do
+// not touch the house: the sun to the grid, the sun to the battery, and the grid to the battery (either way).
+enum Link : uint8_t { SOLAR_GRID = NODES, SOLAR_BATTERY, GRID_BATTERY, LINES };
 
 // One value of Home Assistant, read from the tile's `entities`.
 struct Reading {
@@ -108,11 +111,15 @@ class FlowTile : public tessera::Tile {
     const int k = radius_ * 45 / 100;  // how far above and below the middle the sun's and the battery's lines meet the house
     const float ek = std::sqrt(float(radius_ * radius_ - k * k));
     set_points(GRID, {pt(cx_[GRID] + radius_, mid), pt(cx_[HOME] - radius_, mid)});
-    elbow(SOLAR, cx_[SOLAR], cy_[SOLAR] + radius_, mid - k, cx_[HOME] - ek);
-    elbow(BATTERY, cx_[BATTERY], cy_[BATTERY] - radius_, mid + k, cx_[HOME] - ek);
+    // From the sun and the battery: right to the house, left to the grid, and straight between them.
+    elbow(SOLAR, cx_[SOLAR] + k, cy_[SOLAR] + ek, mid - k, cx_[HOME] - ek);
+    elbow(SOLAR_GRID, cx_[SOLAR] - k, cy_[SOLAR] + ek, mid - k, cx_[GRID] + ek);
+    elbow(BATTERY, cx_[BATTERY] + k, cy_[BATTERY] - ek, mid + k, cx_[HOME] - ek);
+    elbow(GRID_BATTERY, cx_[BATTERY] - k, cy_[BATTERY] - ek, mid + k, cx_[GRID] + ek);
+    set_points(SOLAR_BATTERY, {pt(cx_[SOLAR], cy_[SOLAR] + radius_), pt(cx_[BATTERY], cy_[BATTERY] - radius_)});
     branch_points(WALLBOX);
     branch_points(HEATPUMP);
-    for (int i = 0; i < NODES; ++i) {
+    for (int i = 0; i < LINES; ++i) {
       if (i == HOME) continue;
       line_[i] = lv_line_create(parent_);
       lv_line_set_points(line_[i], points_[i], count_[i]);
@@ -205,7 +212,7 @@ class FlowTile : public tessera::Tile {
       const Reading &r = power_[i];
       const bool shown = any && (r.chosen || i == HOME);
       set_hidden(circle_[i], !shown);
-      if (line_[i]) set_hidden(line_[i], !shown || (!r.chosen));
+      if (i == WALLBOX || i == HEATPUMP) set_hidden(line_[i], !shown || !r.chosen);
       if (!shown) continue;
       ui::set_text(value_[i], r.valid ? power_text(r.value, dec) : std::string("–"));
       // Grid: export in the grid's blue, import in ink. Everything else in ink.
@@ -219,10 +226,12 @@ class FlowTile : public tessera::Tile {
       const bool active = r.valid && std::fabs(r.value) >= IDLE_W;
       if (active != active_[i] || !painted_) {
         active_[i] = active;
-        if (line_[i]) lv_obj_set_style_line_color(line_[i], active ? colour(i) : ui::color(theme::TRACK), 0);
+        if (i == WALLBOX || i == HEATPUMP) lv_obj_set_style_line_color(line_[i], active ? colour(i) : ui::color(theme::TRACK), 0);
         lv_obj_set_style_border_color(circle_[i], active || i == HOME ? colour(i) : ui::color(theme::TRACK), 0);
       }
     }
+
+    flows(any);
 
     // The heat pump's heating or hot water, while it makes some.
     std::string heat;
@@ -285,6 +294,33 @@ class FlowTile : public tessera::Tile {
       case WALLBOX: return ui::color(theme::MARK_PURPLE);
       case HEATPUMP: return ui::tone_color(Tone::ALERT, theme::INK);
       default: return ui::color(theme::INK);
+    }
+  }
+
+  // Where the power of the sun, the grid and the battery goes, as power-flow-card-plus splits it: the sun feeds the grid
+  // first and then the battery, the grid or the battery covers the rest. Each line in its colour while it carries power.
+  void flows(bool any) {
+    const Reading &s = power_[SOLAR], &g = power_[GRID], &b = power_[BATTERY];
+    const float sun = s.valid && s.value > 0 ? s.value : 0.f;
+    const float import = g.valid && g.value > 0 ? g.value : 0.f, out = g.valid && g.value < 0 ? -g.value : 0.f;
+    const float discharge = b.valid && b.value > 0 ? b.value : 0.f, charge = b.valid && b.value < 0 ? -b.value : 0.f;
+    const float sun_grid = std::fmin(out, sun);
+    const float sun_battery = std::fmin(charge, sun - sun_grid);
+    const float grid_battery = std::fmin(import, charge - sun_battery);
+    const float battery_grid = std::fmax(0.f, out - sun_grid);
+    const float flow[LINES] = {sun - sun_grid - sun_battery, import - grid_battery, 0.f, discharge - battery_grid, 0.f, 0.f,
+                               sun_grid, sun_battery, grid_battery + battery_grid};
+    const bool shown[LINES] = {s.chosen, g.chosen, false, b.chosen, false, false,
+                               s.chosen && g.chosen, s.chosen && b.chosen, g.chosen && b.chosen};
+    for (int i : {(int) SOLAR, (int) GRID, (int) BATTERY, (int) SOLAR_GRID, (int) SOLAR_BATTERY, (int) GRID_BATTERY}) {
+      set_hidden(line_[i], !any || !shown[i]);
+      const bool active = flow[i] >= IDLE_W;
+      int hue = i == SOLAR_GRID || i == SOLAR_BATTERY ? SOLAR : i == GRID_BATTERY ? (battery_grid > grid_battery ? BATTERY : GRID) : i;
+      const int look = active ? hue : -1;
+      if (look != look_[i] || !painted_) {
+        look_[i] = look;
+        lv_obj_set_style_line_color(line_[i], active ? colour(hue) : ui::color(theme::TRACK), 0);
+      }
     }
   }
 
@@ -406,9 +442,10 @@ class FlowTile : public tessera::Tile {
   int width_ = 0, height_ = 0, radius_ = 0;
   int cx_[NODES]{}, cy_[NODES]{};
   static constexpr int CURVE = 8, POINTS = CURVE + 3;
-  lv_point_precise_t points_[NODES][POINTS]{};
-  int count_[NODES]{};
-  lv_obj_t *line_[NODES]{}, *circle_[NODES]{}, *icon_[NODES]{}, *value_[NODES]{}, *extra_[NODES]{};
+  lv_point_precise_t points_[LINES][POINTS]{};
+  int count_[LINES]{};
+  int look_[LINES]{};
+  lv_obj_t *line_[LINES]{}, *circle_[NODES]{}, *icon_[NODES]{}, *value_[NODES]{}, *extra_[NODES]{};
   lv_obj_t *m3_title_{}, *m3_value_{}, *price_{}, *heat_{}, *choose_{};
   Reading power_[NODES], soc_, car_soc_, heating_, hot_water_, price_ct_, price_m3_ct_;
   bool active_[NODES]{};

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.3
+- Lines from the sun to the grid and to the battery, and between the grid and the battery, split the way power-flow-card-plus splits the power.
+
 ## 0.1.2
 - The lines of the sun and the battery bend round into the house, as in power-flow-card-plus.
 
