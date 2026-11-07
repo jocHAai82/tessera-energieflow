@@ -334,14 +334,14 @@ class FlowTile : public tessera::Tile {
   }
 
  private:
-  // The colour of each branch, as in the dashboard: the sun amber, the grid blue, the battery green, the house ink,
-  // the wallbox purple and the heat pump red.
+  // The colour of each branch, as in the dashboard: the sun amber, the grid blue, the battery turquoise, the house ink,
+  // the wallbox green and the heat pump red.
   static lv_color_t colour(int i) {
     switch (i) {
       case SOLAR: return ui::color(theme::MARK_AMBER);
       case GRID: return ui::color(theme::MARK_BLUE);
-      case BATTERY: return ui::color(theme::MARK_GREEN);
-      case WALLBOX: return ui::color(theme::MARK_PURPLE);
+      case BATTERY: return ui::color(theme::ENERGY_BATTERY_OUT);  // Home Assistant's turquoise of a battery
+      case WALLBOX: return ui::color(theme::MARK_GREEN);
       case HEATPUMP: return ui::tone_color(Tone::ALERT, theme::INK);
       default: return ui::color(theme::INK);
     }

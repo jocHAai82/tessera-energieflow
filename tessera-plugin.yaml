@@ -2,7 +2,7 @@
 # own branches and the price of the hour (dynamic tariff and §14a module 3) over the grid. Every name, label and hint
 # below is a key into translations/<language>.json, part "app" (docs/MANIFEST.md).
 id: energieflow
-version: 0.1.12
+version: 0.1.13
 api: "0.15"
 icon: lightning-bolt
 maintainer: jocHAai82

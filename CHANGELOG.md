@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.13
+- The battery in Home Assistant's turquoise, the wallbox green.
+
 ## 0.1.12
 - Open arrow heads in the lines' own stroke instead of filled ones.
 - The icons in the large size where the circle has room.
