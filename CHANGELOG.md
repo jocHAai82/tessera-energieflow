@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.11
+- Circles a tenth smaller; the charge or price and the power in the same font; the names centred on their circles.
+
 ## 0.1.10
 - The arrows of the wallbox and the heat pump sit on the house's ring, pointing at them while they draw power.
 

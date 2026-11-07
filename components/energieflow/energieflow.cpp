@@ -96,8 +96,9 @@ class FlowTile : public tessera::Tile {
     // allows, the same for all six, with a line for the names over the top row and under the bottom one.
     const int hn = ui::line_height(Font::BODY);
     const int pad = ui::px(4), gap = ui::px(14);
-    const int by_width = (width_ - 2 * pad - 2 * gap) / 6;
-    const int by_height = (height_ / 2 - hn - pad - gap) / 3;
+    // A tenth smaller than the room allows, so the lines between them show.
+    const int by_width = (width_ - 2 * pad - 2 * gap) * 9 / 60;
+    const int by_height = (height_ / 2 - hn - pad - gap) * 9 / 30;
     radius_ = by_width < by_height ? by_width : by_height;
     const int least = ui::px(26);
     if (radius_ < least) radius_ = least;
@@ -153,7 +154,13 @@ class FlowTile : public tessera::Tile {
     // The names, as in the dashboard: over the sun and the wallbox, under the others.
     const char *names[NODES] = {"name_solar", "name_grid", "name_home", "name_battery", "name_wallbox", "name_heatpump"};
     for (int i = 0; i < NODES; ++i) {
-      const int w = d + ui::px(40);
+      // Centred on the circle: as wide as the room on its narrower side allows, wider only for a name that needs it.
+      const int side = cx_[i] < width_ - cx_[i] ? cx_[i] : width_ - cx_[i];
+      const int need = ui::text_width(plugin_->text(names[i]), Font::BODY) + ui::px(4);
+      int w = d + ui::px(40);
+      if (w > 2 * side) w = 2 * side;
+      if (w < need) w = need;
+      if (w > width_) w = width_;
       int x = cx_[i] - w / 2;
       if (x < 0) x = 0;
       if (x + w > width_) x = width_ - w;
@@ -519,18 +526,16 @@ class FlowTile : public tessera::Tile {
     count_[i] = 2;
   }
 
-  // The largest fonts that fit in a circle of inner width `inner`: the power ("8,8 kW") and the line over the icon
-  // ("88,8 ct", "100 %"), all three lines within four fifths of the circle's height.
+  // The largest font that fits in a circle of inner width `inner`: the power ("8,8 kW") and the line over the icon
+  // ("88,8 ct", "100 %"), all three lines within nine tenths of the circle's height.
   void choose_fonts(int inner) {
-    const int room = inner * 4 / 5, hi = ui::line_height(Font::ICON_SMALL);
-    for (Font v : {Font::HEADLINE, Font::BODY_LARGE, Font::TITLE, Font::BODY}) {
-      for (Font e : {Font::BODY_LARGE, Font::TITLE, Font::BODY}) {
-        if (ui::text_width("8,8 kW", v) > inner - ui::px(10) || ui::text_width("88,8 ct", e) > inner - ui::px(10)) continue;
-        if (ui::line_height(v) + ui::line_height(e) + hi > room) continue;
-        value_font_ = v;
-        extra_font_ = e;
-        return;
-      }
+    // The same font for both, as in the dashboard.
+    const int room = inner * 9 / 10, hi = ui::line_height(Font::ICON_SMALL);
+    for (Font f : {Font::HEADLINE, Font::BODY_LARGE, Font::TITLE, Font::BODY}) {
+      if (ui::text_width("8,8 kW", f) > inner - ui::px(10) || ui::text_width("88,8 ct", f) > inner - ui::px(10)) continue;
+      if (2 * ui::line_height(f) + hi > room) continue;
+      value_font_ = extra_font_ = f;
+      return;
     }
     value_font_ = extra_font_ = Font::BODY;
   }
