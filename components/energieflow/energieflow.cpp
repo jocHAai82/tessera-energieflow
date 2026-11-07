@@ -404,9 +404,9 @@ class FlowTile : public tessera::Tile {
     for (int j = 1; j < count_[i]; ++j)
       total += std::hypot(points_[i][j].x - points_[i][j - 1].x, points_[i][j].y - points_[i][j - 1].y);
     const float size = radius_ * 0.3f;
-    // The wallbox and the heat pump stand close over and under the house: their arrow sits on the house's ring, where
-    // their line leaves it, pointing at them.
-    const bool on_ring = i == WALLBOX || i == HEATPUMP;
+    // The wallbox and the heat pump stand close over and under the house: their arrow sits in the middle of their short
+    // line, or on the house's ring where the line is too short even for that, pointing at them.
+    const bool on_ring = (i == WALLBOX || i == HEATPUMP) && total < size * 1.2f;
     if (!on_ring && total < size * 2.5f) return;
     const float share = on_ring ? 0.f : i == GRID ? 0.78f : i == SOLAR_BATTERY ? 0.25f : 0.5f;
     float want = total * share, x = 0, y = 0, ux = 1, uy = 0;

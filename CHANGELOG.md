@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.14
+- The arrows of the wallbox and the heat pump in the middle of their line, where it has room.
+
 ## 0.1.13
 - The battery in Home Assistant's turquoise, the wallbox green.
 
