@@ -145,7 +145,7 @@ class FlowTile : public tessera::Tile {
       lv_obj_set_style_radius(circle_[i], LV_RADIUS_CIRCLE, 0);
       lv_obj_set_style_border_width(circle_[i], border, 0);
       lv_obj_set_style_pad_all(circle_[i], 0, 0);
-      icon_[i] = centred(circle_[i], Font::ICON_SMALL, theme::INK, d);
+      icon_[i] = centred(circle_[i], icon_font_, theme::INK, d);
       ui::set_text(icon_[i], ui::icon(icons[i]));
       value_[i] = centred(circle_[i], value_font_, theme::INK, d - 2 * border - ui::px(4));
       extra_[i] = centred(circle_[i], extra_font_, theme::INK, d - 2 * border - ui::px(4));
@@ -424,19 +424,19 @@ class FlowTile : public tessera::Tile {
       }
       want -= len;
     }
-    const float w = size * 0.55f;  // the stroke: thick enough to fill the triangle
-    const float l = (size - w) / 2, h = (size - w) / 2.4f;
+    // An open head, two strokes as thick as the line meeting at the tip, 45 degrees to each side.
+    const float arm = size * 0.6f, back = arm * 0.7071f, wide = arm * 0.7071f, ahead = back / 2;
     for (int dir = 0; dir < 2; ++dir) {
       const float sx = dir ? ux : -ux, sy = dir ? uy : -uy;
+      const float tx = x + sx * ahead, ty = y + sy * ahead;  // the tip
       lv_point_precise_t *a = arrow_pts_[i][dir];
-      a[0] = pt(x + sx * l, y + sy * l);                      // the tip
-      a[1] = pt(x - sx * l - sy * h, y - sy * l + sx * h);
-      a[2] = pt(x - sx * l + sy * h, y - sy * l - sx * h);
-      a[3] = a[0];
+      a[0] = pt(tx - sx * back - sy * wide, ty - sy * back + sx * wide);
+      a[1] = pt(tx, ty);
+      a[2] = pt(tx - sx * back + sy * wide, ty - sy * back - sx * wide);
     }
     arrow_[i] = lv_line_create(parent_);
-    lv_line_set_points(arrow_[i], arrow_pts_[i][1], 4);
-    lv_obj_set_style_line_width(arrow_[i], int(w + 0.5f) > border ? int(w + 0.5f) : border, 0);
+    lv_line_set_points(arrow_[i], arrow_pts_[i][1], 3);
+    lv_obj_set_style_line_width(arrow_[i], border, 0);
     lv_obj_set_style_line_rounded(arrow_[i], true, 0);
     lv_obj_remove_flag(arrow_[i], LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(arrow_[i], LV_OBJ_FLAG_HIDDEN);
@@ -446,7 +446,7 @@ class FlowTile : public tessera::Tile {
     if (!arrow_[i]) return;
     set_hidden(arrow_[i], !shown);
     if (!shown) return;
-    lv_line_set_points(arrow_[i], arrow_pts_[i][forward ? 1 : 0], 4);
+    lv_line_set_points(arrow_[i], arrow_pts_[i][forward ? 1 : 0], 3);
     lv_obj_set_style_line_color(arrow_[i], c, 0);
   }
 
@@ -530,14 +530,19 @@ class FlowTile : public tessera::Tile {
   // ("88,8 ct", "100 %"), all three lines within nine tenths of the circle's height.
   void choose_fonts(int inner) {
     // The same font for both, as in the dashboard.
-    const int room = inner * 9 / 10, hi = ui::line_height(Font::ICON_SMALL);
+    // The icon in the large size where it fits beside the text's size, else the small one.
+    const int room = inner * 19 / 20;
     for (Font f : {Font::HEADLINE, Font::BODY_LARGE, Font::TITLE, Font::BODY}) {
       if (ui::text_width("8,8 kW", f) > inner - ui::px(10) || ui::text_width("88,8 ct", f) > inner - ui::px(10)) continue;
-      if (2 * ui::line_height(f) + hi > room) continue;
-      value_font_ = extra_font_ = f;
-      return;
+      for (Font icon : {Font::ICON, Font::ICON_SMALL}) {
+        if (2 * ui::line_height(f) + ui::line_height(icon) > room) continue;
+        value_font_ = extra_font_ = f;
+        icon_font_ = icon;
+        return;
+      }
     }
     value_font_ = extra_font_ = Font::BODY;
+    icon_font_ = Font::ICON_SMALL;
   }
 
   static lv_obj_t *centred(lv_obj_t *parent, Font font, theme::Role role, int width) {
@@ -551,7 +556,7 @@ class FlowTile : public tessera::Tile {
   // As in the dashboard: the charge or the price over the icon, the power under it, together in the middle.
   void stack(int i, bool third) {
     const int d = 2 * radius_;
-    const int hi = ui::line_height(Font::ICON_SMALL);
+    const int hi = ui::line_height(icon_font_);
     const int hv = ui::line_height(value_font_);
     const int he = third ? ui::line_height(extra_font_) : 0;
     const int top = (d - hi - hv - he) / 2;
@@ -579,7 +584,7 @@ class FlowTile : public tessera::Tile {
   int count_[LINES]{};
   int look_[LINES]{};
   lv_obj_t *arrow_[LINES]{};
-  lv_point_precise_t arrow_pts_[LINES][2][4]{};
+  lv_point_precise_t arrow_pts_[LINES][2][3]{};
   lv_obj_t *ring_[3]{};
   int ring_at_[3]{}, ring_span_[3]{};
   lv_obj_t *line_[LINES]{}, *circle_[NODES]{}, *icon_[NODES]{}, *value_[NODES]{}, *extra_[NODES]{}, *name_[NODES]{};
@@ -589,7 +594,7 @@ class FlowTile : public tessera::Tile {
   bool active_[NODES]{};
   bool painted_ = false;
   bool compact_ = false;
-  Font value_font_ = Font::BODY, extra_font_ = Font::BODY;
+  Font value_font_ = Font::BODY, extra_font_ = Font::BODY, icon_font_ = Font::ICON_SMALL;
 };
 
 void Energieflow::setup() {

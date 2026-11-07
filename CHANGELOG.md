@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.12
+- Open arrow heads in the lines' own stroke instead of filled ones.
+- The icons in the large size where the circle has room.
+
 ## 0.1.11
 - Circles a tenth smaller; the charge or price and the power in the same font; the names centred on their circles.
 
