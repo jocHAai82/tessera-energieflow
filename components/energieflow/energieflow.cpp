@@ -132,8 +132,6 @@ class FlowTile : public tessera::Tile {
       lv_obj_set_style_line_rounded(line_[i], true, 0);
       lv_obj_remove_flag(line_[i], LV_OBJ_FLAG_CLICKABLE);
     }
-    // On each line an arrow in its colour, pointing the way the power goes, while the line carries power.
-    for (int i = 0; i < LINES; ++i) if (i != HOME) make_arrow(i, border);
 
     // The circles, each with its icon, its value and a third line where it has one.
     const uint32_t icons[NODES] = {ICON_SOLAR, ICON_GRID, ICON_HOME, ICON_BATTERY, ICON_CAR, ICON_HEATPUMP};
@@ -182,6 +180,10 @@ class FlowTile : public tessera::Tile {
       lv_arc_set_angles(a, 0, 0);
       ring_[j] = a;
     }
+    // On each line an arrow in its colour, pointing the way the power goes, while the line carries power; made after the
+    // circles, as the wallbox's and the heat pump's sit on the house's ring.
+    for (int i = 0; i < LINES; ++i) if (i != HOME) make_arrow(i, border);
+
     // Module 3 centred over the grid's circle, as wide as the room left of it; its step in a smaller font where the large
     // one does not fit. The price of the hour goes in the circle, under the grid's watts.
     const int words = 2 * cx_[GRID];
@@ -395,8 +397,11 @@ class FlowTile : public tessera::Tile {
     for (int j = 1; j < count_[i]; ++j)
       total += std::hypot(points_[i][j].x - points_[i][j - 1].x, points_[i][j].y - points_[i][j - 1].y);
     const float size = radius_ * 0.3f;
-    if (total < size * 2.5f) return;  // too short (the wallbox and the heat pump close under the house)
-    const float share = i == GRID ? 0.78f : i == SOLAR_BATTERY ? 0.25f : 0.5f;
+    // The wallbox and the heat pump stand close over and under the house: their arrow sits on the house's ring, where
+    // their line leaves it, pointing at them.
+    const bool on_ring = i == WALLBOX || i == HEATPUMP;
+    if (!on_ring && total < size * 2.5f) return;
+    const float share = on_ring ? 0.f : i == GRID ? 0.78f : i == SOLAR_BATTERY ? 0.25f : 0.5f;
     float want = total * share, x = 0, y = 0, ux = 1, uy = 0;
     for (int j = 1; j < count_[i]; ++j) {
       const float dx = points_[i][j].x - points_[i][j - 1].x, dy = points_[i][j].y - points_[i][j - 1].y;

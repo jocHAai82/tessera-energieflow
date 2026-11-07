@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.10
+- The arrows of the wallbox and the heat pump sit on the house's ring, pointing at them while they draw power.
+
 ## 0.1.9
 - An arrow on each line that carries power, pointing the way it flows.
 
