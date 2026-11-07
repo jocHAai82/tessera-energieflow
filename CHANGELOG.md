@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.6
+- In each circle the charge or the price over the icon and the power under it, as in the dashboard, in the largest fonts that fit.
+
 ## 0.1.5
 - Names at the circles, as in the dashboard: solar, grid, battery, home, wallbox and heat pump.
 

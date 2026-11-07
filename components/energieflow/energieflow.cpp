@@ -133,7 +133,7 @@ class FlowTile : public tessera::Tile {
     // The circles, each with its icon, its value and a third line where it has one.
     const uint32_t icons[NODES] = {ICON_SOLAR, ICON_GRID, ICON_HOME, ICON_BATTERY, ICON_CAR, ICON_HEATPUMP};
     const int d = 2 * radius_;
-    value_font_ = value_font(d);
+    choose_fonts(d - 2 * border);
     for (int i = 0; i < NODES; ++i) {
       circle_[i] = ui::block(parent_, theme::CARD);
       lv_obj_set_size(circle_[i], d, d);
@@ -144,7 +144,7 @@ class FlowTile : public tessera::Tile {
       icon_[i] = centred(circle_[i], Font::ICON_SMALL, theme::INK, d);
       ui::set_text(icon_[i], ui::icon(icons[i]));
       value_[i] = centred(circle_[i], value_font_, theme::INK, d - 2 * border - ui::px(4));
-      extra_[i] = centred(circle_[i], Font::BODY, theme::MUTED, d - 2 * border - ui::px(4));
+      extra_[i] = centred(circle_[i], extra_font_, theme::INK, d - 2 * border - ui::px(4));
     }
 
     // The names, as in the dashboard: over the sun and the wallbox, under the others.
@@ -286,7 +286,7 @@ class FlowTile : public tessera::Tile {
     for (int i = 0; i < NODES; ++i) {
       if (!circle_[i]) continue;
       lv_obj_set_style_bg_color(circle_[i], ui::color(theme::CARD), 0);
-      ui::set_color(extra_[i], theme::MUTED);
+      ui::set_color(extra_[i], theme::INK);
       ui::set_color(name_[i], theme::MUTED);
       lv_obj_set_style_text_color(icon_[i], colour(i), 0);
     }
@@ -420,11 +420,20 @@ class FlowTile : public tessera::Tile {
     count_[i] = 2;
   }
 
-  Font value_font(int d) const {
-    for (Font f : {Font::BODY_LARGE, Font::BODY}) {
-      if (ui::text_width("8,8 kW", f) <= d - ui::px(12)) return f;
+  // The largest fonts that fit in a circle of inner width `inner`: the power ("8,8 kW") and the line over the icon
+  // ("88,8 ct", "100 %"), all three lines within four fifths of the circle's height.
+  void choose_fonts(int inner) {
+    const int room = inner * 4 / 5, hi = ui::line_height(Font::ICON_SMALL);
+    for (Font v : {Font::HEADLINE, Font::BODY_LARGE, Font::TITLE, Font::BODY}) {
+      for (Font e : {Font::BODY_LARGE, Font::TITLE, Font::BODY}) {
+        if (ui::text_width("8,8 kW", v) > inner - ui::px(10) || ui::text_width("88,8 ct", e) > inner - ui::px(10)) continue;
+        if (ui::line_height(v) + ui::line_height(e) + hi > room) continue;
+        value_font_ = v;
+        extra_font_ = e;
+        return;
+      }
     }
-    return Font::BODY;
+    value_font_ = extra_font_ = Font::BODY;
   }
 
   static lv_obj_t *centred(lv_obj_t *parent, Font font, theme::Role role, int width) {
@@ -435,16 +444,17 @@ class FlowTile : public tessera::Tile {
   }
 
   // The icon, the value and the third line, together in the middle of the circle.
+  // As in the dashboard: the charge or the price over the icon, the power under it, together in the middle.
   void stack(int i, bool third) {
     const int d = 2 * radius_;
     const int hi = ui::line_height(Font::ICON_SMALL);
     const int hv = ui::line_height(value_font_);
-    const int he = third ? ui::line_height(Font::BODY) : 0;
+    const int he = third ? ui::line_height(extra_font_) : 0;
     const int top = (d - hi - hv - he) / 2;
     const int bw = lv_obj_get_width(value_[i]);
-    lv_obj_set_pos(icon_[i], 0, top);
-    lv_obj_set_pos(value_[i], (d - bw) / 2, top + hi);
-    lv_obj_set_pos(extra_[i], (d - bw) / 2, top + hi + hv);
+    lv_obj_set_pos(extra_[i], (d - bw) / 2, top);
+    lv_obj_set_pos(icon_[i], 0, top + he);
+    lv_obj_set_pos(value_[i], (d - bw) / 2, top + he + hi);
     set_hidden(extra_[i], !third);
   }
 
@@ -470,7 +480,7 @@ class FlowTile : public tessera::Tile {
   bool active_[NODES]{};
   bool painted_ = false;
   bool compact_ = false;
-  Font value_font_ = Font::BODY;
+  Font value_font_ = Font::BODY, extra_font_ = Font::BODY;
 };
 
 void Energieflow::setup() {
