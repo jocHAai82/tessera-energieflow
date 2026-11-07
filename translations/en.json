@@ -13,7 +13,13 @@
     "hot_water_short": "Hot water",
     "larger": "drag to 3×3 or larger",
     "grid_short": "Grid",
-    "export_short": "Export"
+    "export_short": "Export",
+    "name_solar": "Solar",
+    "name_grid": "Grid",
+    "name_home": "Home",
+    "name_battery": "Battery",
+    "name_wallbox": "Wallbox",
+    "name_heatpump": "Heat pump"
   },
   "app": {
     "name": "Energy flow",

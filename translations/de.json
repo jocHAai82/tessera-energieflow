@@ -13,7 +13,13 @@
     "hot_water_short": "Warmwasser",
     "larger": "ab 3×3 größer ziehen",
     "grid_short": "Netz",
-    "export_short": "Einspeisung"
+    "export_short": "Einspeisung",
+    "name_solar": "PV",
+    "name_grid": "Netz",
+    "name_home": "Home",
+    "name_battery": "Speicher",
+    "name_wallbox": "Wallbox",
+    "name_heatpump": "Wärmepumpe"
   },
   "app": {
     "name": "Energiefluss",

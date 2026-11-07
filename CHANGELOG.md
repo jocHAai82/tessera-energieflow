@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.5
+- Names at the circles, as in the dashboard: solar, grid, battery, home, wallbox and heat pump.
+
 ## 0.1.4
 - The price of the hour in the grid's circle under its watts; module 3 centred over the circle.
 

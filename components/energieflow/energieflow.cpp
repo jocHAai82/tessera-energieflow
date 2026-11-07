@@ -89,8 +89,10 @@ class FlowTile : public tessera::Tile {
       return;
     }
 
-    // The circles: as large as the tile allows, the same for all six.
-    const int by_width = width_ * 11 / 100, by_height = height_ * 14 / 100;
+    // The circles: as large as the tile allows, the same for all six, with a line for their names above the top ones and
+    // below the bottom ones.
+    const int hn = ui::line_height(Font::BODY);
+    const int by_width = width_ * 11 / 100, by_height = (height_ - 2 * hn) * 15 / 100;
     radius_ = by_width < by_height ? by_width : by_height;
     const int least = ui::px(26);
     if (radius_ < least) radius_ = least;
@@ -101,11 +103,11 @@ class FlowTile : public tessera::Tile {
     // house in the middle right, and the wallbox and the heat pump as the house's own branches beside it.
     const int mid = height_ / 2;
     cx_[GRID] = radius_ + pad;               cy_[GRID] = mid;
-    cx_[SOLAR] = width_ * 40 / 100;          cy_[SOLAR] = radius_ + pad;
-    cx_[BATTERY] = width_ * 40 / 100;        cy_[BATTERY] = height_ - radius_ - pad;
+    cx_[SOLAR] = width_ * 40 / 100;          cy_[SOLAR] = hn + radius_ + pad;
+    cx_[BATTERY] = width_ * 40 / 100;        cy_[BATTERY] = height_ - hn - radius_ - pad;
     cx_[HOME] = width_ * 67 / 100;           cy_[HOME] = mid;
-    cx_[WALLBOX] = width_ - radius_ - pad;   cy_[WALLBOX] = radius_ + pad;
-    cx_[HEATPUMP] = width_ - radius_ - pad;  cy_[HEATPUMP] = height_ - radius_ - pad;
+    cx_[WALLBOX] = width_ - radius_ - pad;   cy_[WALLBOX] = cy_[SOLAR];
+    cx_[HEATPUMP] = width_ - radius_ - pad;  cy_[HEATPUMP] = cy_[BATTERY];
 
     // The lines first, so the circles lie over their ends.
     const int k = radius_ * 45 / 100;  // how far above and below the middle the sun's and the battery's lines meet the house
@@ -145,6 +147,19 @@ class FlowTile : public tessera::Tile {
       extra_[i] = centred(circle_[i], Font::BODY, theme::MUTED, d - 2 * border - ui::px(4));
     }
 
+    // The names, as in the dashboard: over the sun and the wallbox, under the others.
+    const char *names[NODES] = {"name_solar", "name_grid", "name_home", "name_battery", "name_wallbox", "name_heatpump"};
+    for (int i = 0; i < NODES; ++i) {
+      const int w = d + ui::px(40);
+      int x = cx_[i] - w / 2;
+      if (x < 0) x = 0;
+      if (x + w > width_) x = width_ - w;
+      name_[i] = centred(parent_, Font::BODY, theme::MUTED, w);
+      ui::set_text(name_[i], plugin_->text(names[i]));
+      const bool over = i == SOLAR || i == WALLBOX;
+      lv_obj_set_pos(name_[i], x, over ? cy_[i] - radius_ - pad / 2 - hn : cy_[i] + radius_ + pad / 2);
+    }
+
     // Over the grid: module 3 and its step; under it: the price of the hour.
     // Module 3 centred over the grid's circle, as wide as the room left of it; its step in a smaller font where the large
     // one does not fit. The price of the hour goes in the circle, under the grid's watts.
@@ -162,10 +177,12 @@ class FlowTile : public tessera::Tile {
     lv_obj_set_pos(m3_title_, left, cy_[GRID] - radius_ - ui::px(4) - hv - ht);
 
     // Beside the heat pump: what it makes now, heating or hot water.
+    // Left of the heat pump, level with its lower edge, between it and the battery: the house's name stands over it.
     heat_ = ui::label(parent_, Font::BODY, theme::MUTED);
-    lv_obj_set_width(heat_, d + ui::px(40));
+    const int heat_right = cx_[HEATPUMP] - radius_ - ui::px(6), heat_left = cx_[BATTERY] + radius_ + ui::px(6);
+    lv_obj_set_width(heat_, heat_right > heat_left ? heat_right - heat_left : 0);
     lv_obj_set_style_text_align(heat_, LV_TEXT_ALIGN_RIGHT, 0);
-    lv_obj_set_pos(heat_, width_ - d - ui::px(40), cy_[HEATPUMP] - radius_ - ui::px(4) - ht);
+    lv_obj_set_pos(heat_, heat_left, cy_[HEATPUMP] + radius_ - ht);
 
     // Until sensors are chosen.
     choose_ = ui::label(parent_, Font::BODY, theme::MUTED);
@@ -213,6 +230,7 @@ class FlowTile : public tessera::Tile {
       const Reading &r = power_[i];
       const bool shown = any && (r.chosen || i == HOME);
       set_hidden(circle_[i], !shown);
+      set_hidden(name_[i], !shown);
       if (i == WALLBOX || i == HEATPUMP) set_hidden(line_[i], !shown || !r.chosen);
       if (!shown) continue;
       ui::set_text(value_[i], r.valid ? power_text(r.value, dec) : std::string("–"));
@@ -269,6 +287,7 @@ class FlowTile : public tessera::Tile {
       if (!circle_[i]) continue;
       lv_obj_set_style_bg_color(circle_[i], ui::color(theme::CARD), 0);
       ui::set_color(extra_[i], theme::MUTED);
+      ui::set_color(name_[i], theme::MUTED);
       lv_obj_set_style_text_color(icon_[i], colour(i), 0);
     }
     if (compact_) {
@@ -445,7 +464,7 @@ class FlowTile : public tessera::Tile {
   lv_point_precise_t points_[LINES][POINTS]{};
   int count_[LINES]{};
   int look_[LINES]{};
-  lv_obj_t *line_[LINES]{}, *circle_[NODES]{}, *icon_[NODES]{}, *value_[NODES]{}, *extra_[NODES]{};
+  lv_obj_t *line_[LINES]{}, *circle_[NODES]{}, *icon_[NODES]{}, *value_[NODES]{}, *extra_[NODES]{}, *name_[NODES]{};
   lv_obj_t *m3_title_{}, *m3_value_{}, *heat_{}, *choose_{};
   Reading power_[NODES], soc_, car_soc_, heating_, hot_water_, price_ct_, price_m3_ct_;
   bool active_[NODES]{};
