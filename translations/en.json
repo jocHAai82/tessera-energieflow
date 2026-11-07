@@ -10,7 +10,10 @@
     "st": "ST",
     "ht": "HT",
     "heating_short": "Heating",
-    "hot_water_short": "Hot water"
+    "hot_water_short": "Hot water",
+    "larger": "drag to 3×3 or larger",
+    "grid_short": "Grid",
+    "export_short": "Export"
   },
   "app": {
     "name": "Energy flow",

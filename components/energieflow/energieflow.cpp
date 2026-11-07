@@ -69,6 +69,23 @@ class FlowTile : public tessera::Tile {
     height_ = c.height;
     parent_ = c.parent;
 
+    // Smaller than 3 x 3 the diagram has no room. The editor puts a new plugin tile on in one cell and widens it one
+    // edge at a time, so the tile takes every size and shows the house and the grid until it is large enough.
+    compact_ = c.columns < 3 || c.rows < 3;
+    if (compact_) {
+      const int hi = ui::line_height(Font::ICON_SMALL), hv = ui::line_height(Font::BODY_LARGE), ht = ui::line_height(Font::BODY);
+      const int top = (height_ - hi - hv - ht) / 2 < 0 ? 0 : (height_ - hi - hv - ht) / 2;
+      icon_[HOME] = centred(parent_, Font::ICON_SMALL, theme::INK, width_);
+      ui::set_text(icon_[HOME], ui::icon(ICON_HOME));
+      value_[HOME] = centred(parent_, Font::BODY_LARGE, theme::INK, width_);
+      extra_[HOME] = centred(parent_, Font::BODY, theme::MUTED, width_);
+      lv_obj_set_pos(icon_[HOME], 0, top);
+      lv_obj_set_pos(value_[HOME], 0, top + hi);
+      lv_obj_set_pos(extra_[HOME], 0, top + hi + hv);
+      on_theme();
+      return;
+    }
+
     // The circles: as large as the tile allows, the same for all six.
     const int by_width = width_ * 11 / 100, by_height = height_ * 14 / 100;
     radius_ = by_width < by_height ? by_width : by_height;
@@ -170,6 +187,16 @@ class FlowTile : public tessera::Tile {
 
   void on_tick(uint32_t epoch) override {
     const char *dec = plugin_->text("decimal");
+    if (compact_) {
+      // The house's use, and under it the grid: "Netz 1,2 kW" while it draws, the hint to make the tile larger otherwise.
+      const Reading &h = power_[HOME], &g = power_[GRID];
+      ui::set_text(value_[HOME], h.valid ? power_text(h.value, dec) : std::string("–"));
+      std::string below = plugin_->text("larger");
+      if (g.valid && std::fabs(g.value) >= IDLE_W)
+        below = std::string(plugin_->text(g.value < 0 ? "export_short" : "grid_short")) + " " + power_text(g.value, dec);
+      ui::set_text(extra_[HOME], below);
+      return;
+    }
     bool any = false;
     for (int i = 0; i < NODES; ++i) any = any || power_[i].chosen;
     set_hidden(choose_, any);
@@ -233,6 +260,12 @@ class FlowTile : public tessera::Tile {
       lv_obj_set_style_bg_color(circle_[i], ui::color(theme::CARD), 0);
       ui::set_color(extra_[i], theme::MUTED);
       lv_obj_set_style_text_color(icon_[i], colour(i), 0);
+    }
+    if (compact_) {
+      lv_obj_set_style_text_color(icon_[HOME], colour(HOME), 0);
+      ui::set_color(extra_[HOME], theme::MUTED);
+      on_tick(tessera::epoch());
+      return;
     }
     ui::set_color(m3_title_, theme::MUTED);
     ui::set_color(price_, theme::MUTED);
@@ -361,6 +394,7 @@ class FlowTile : public tessera::Tile {
   Reading power_[NODES], soc_, car_soc_, heating_, hot_water_, price_ct_, price_m3_ct_;
   bool active_[NODES]{};
   bool painted_ = false;
+  bool compact_ = false;
   Font value_font_ = Font::BODY;
 };
 

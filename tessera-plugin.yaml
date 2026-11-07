@@ -2,7 +2,7 @@
 # own branches and the price of the hour (dynamic tariff and §14a module 3) over the grid. Every name, label and hint
 # below is a key into translations/<language>.json, part "app" (docs/MANIFEST.md).
 id: energieflow
-version: 0.1.0
+version: 0.1.1
 api: "0.15"
 icon: lightning-bolt
 maintainer: jocHAai82
@@ -18,7 +18,7 @@ tiles:
   - id: flow
     name: tile_name
     icon: lightning-bolt
-    sizes: { min: 3x3, max: 8x8 }
+    sizes: { min: 1x1, max: 8x8 }
     memory: 4200
     example: tile_example
     options:

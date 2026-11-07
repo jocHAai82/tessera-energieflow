@@ -11,7 +11,7 @@ The tile stands still: Tessera lets only popups move, so the flow shows by colou
 
 1. In Tessera, open Plugins, choose **Add with a link** and paste the link of this repository.
 2. Add the plugin to a screen and let it build.
-3. In Layout, place **Energy flow** (3x3 or larger) and choose its sensors in the inspector:
+3. In Layout, place **Energy flow**, drag it to 3x3 or larger and choose its sensors in the inspector:
    - Solar, grid, house, battery and wallbox power and the heat pump's power, in W or kW. The grid is positive while
      power comes from the grid; the battery positive while it discharges.
    - The battery's and the car's state of charge in %.

@@ -35,4 +35,4 @@ tiles:
         price_m3: { state: "0.4810", attributes: { unit_of_measurement: EUR/kWh } }
   - tile: flow
     name: No sensors yet
-    sizes: [3x3]
+    sizes: [3x3, 1x1]
