@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "name": "Deutsch"
+  },
+  "screen": {
+    "choose": "Sensoren im Editor wählen",
+    "decimal": ",",
+    "module3": "Modul 3",
+    "nt": "NT",
+    "st": "ST",
+    "ht": "HT",
+    "heating_short": "Heizen",
+    "hot_water_short": "Warmwasser"
+  },
+  "app": {
+    "name": "Energiefluss",
+    "summary": "Live-Energiefluss von PV, Netz, Speicher und Haus, mit Wallbox, Wärmepumpe und aktuellem Strompreis.",
+    "tile_name": "Energiefluss",
+    "tile_example": "PV, Netz, Speicher, Haus, Wallbox und Wärmepumpe",
+    "solar": "PV-Leistung",
+    "grid": "Netzleistung",
+    "home": "Hausverbrauch",
+    "battery": "Speicherleistung",
+    "soc": "Ladestand",
+    "wallbox": "Wallbox-Leistung",
+    "car_soc": "Akkustand Auto",
+    "heatpump": "Wärmepumpe Leistungsaufnahme",
+    "heating": "Wärmepumpe: Heizleistung",
+    "hot_water": "Wärmepumpe: Warmwasserleistung",
+    "price": "Strompreis",
+    "price_m3": "Strompreis mit Modul 3",
+    "hint_power": "Ein Leistungssensor in W oder kW.",
+    "hint_grid": "W oder kW, positiv bei Netzbezug.",
+    "hint_home": "W oder kW: das Haus ohne Wallbox und Wärmepumpe, die als eigene Zweige erscheinen.",
+    "hint_battery": "W oder kW, positiv beim Entladen.",
+    "hint_soc": "In %.",
+    "hint_heat": "Thermische Leistung in W oder kW; erscheint neben der Wärmepumpe, solange sie läuft.",
+    "hint_price": "In EUR/kWh, unter dem Netz in ct angezeigt.",
+    "hint_price_m3": "In EUR/kWh: der Preis mit dem zeitvariablen Netzentgelt nach §14a Modul 3 (NT 23:00–06:45, HT 08:30–15:15 und 17:15–21:15, Januar bis März und Oktober bis Dezember). Leer lassen zum Ausblenden."
+  }
+}

@@ -1,0 +1,36 @@
+# Energiefluss: a live power flow like Home Assistant's power-flow-card-plus, with a wallbox and a heat pump as their
+# own branches and the price of the hour (dynamic tariff and §14a module 3) over the grid. Every name, label and hint
+# below is a key into translations/<language>.json, part "app" (docs/MANIFEST.md).
+id: energieflow
+version: 0.1.0
+api: "0.15"
+icon: lightning-bolt
+maintainer: jocHAai82
+license: MIT
+stage: beta
+topics: [energy, home]
+requires:
+  esphome: 2026.6.2
+boards: any
+flash_kb: 8
+
+tiles:
+  - id: flow
+    name: tile_name
+    icon: lightning-bolt
+    sizes: { min: 3x3, max: 8x8 }
+    memory: 4200
+    example: tile_example
+    options:
+      - { id: solar, kind: entity, default: sensor.goodwe_pv_power, domains: [sensor], attributes: [unit_of_measurement], label: solar, hint: hint_power }
+      - { id: grid, kind: entity, default: sensor.goodwe_meter_active_power_total_inverted, domains: [sensor], attributes: [unit_of_measurement], label: grid, hint: hint_grid }
+      - { id: home, kind: entity, default: sensor.hausverbrauch_ohne_warmepumpe, domains: [sensor], attributes: [unit_of_measurement], label: home, hint: hint_home }
+      - { id: battery, kind: entity, default: sensor.goodwe_battery_power, domains: [sensor], attributes: [unit_of_measurement], label: battery, hint: hint_battery }
+      - { id: soc, kind: entity, default: sensor.goodwe_battery_state_of_charge, domains: [sensor], attributes: [unit_of_measurement], label: soc, hint: hint_soc }
+      - { id: wallbox, kind: entity, default: sensor.garage_wallbox_14a_ladeleistung, domains: [sensor], attributes: [unit_of_measurement], label: wallbox, hint: hint_power }
+      - { id: car_soc, kind: entity, default: sensor.batterie, domains: [sensor], attributes: [unit_of_measurement], label: car_soc, hint: hint_soc }
+      - { id: heatpump, kind: entity, default: sensor.warmepumpe_leistungsaufnahme, domains: [sensor], attributes: [unit_of_measurement], label: heatpump, hint: hint_power }
+      - { id: heating, kind: entity, default: sensor.ecodan_ashp_heating_output, domains: [sensor], attributes: [unit_of_measurement], label: heating, hint: hint_heat }
+      - { id: hot_water, kind: entity, default: sensor.ecodan_ashp_dhw_output, domains: [sensor], attributes: [unit_of_measurement], label: hot_water, hint: hint_heat }
+      - { id: price, kind: entity, default: sensor.jmr_strompreis, domains: [sensor], attributes: [unit_of_measurement], label: price, hint: hint_price }
+      - { id: price_m3, kind: entity, default: sensor.strompreis_modul_3, domains: [sensor], attributes: [unit_of_measurement], label: price_m3, hint: hint_price_m3 }

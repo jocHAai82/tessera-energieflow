@@ -1,0 +1,41 @@
+{
+  "_meta": {
+    "name": "English"
+  },
+  "screen": {
+    "choose": "Choose the sensors in the editor",
+    "decimal": ".",
+    "module3": "Module 3",
+    "nt": "NT",
+    "st": "ST",
+    "ht": "HT",
+    "heating_short": "Heating",
+    "hot_water_short": "Hot water"
+  },
+  "app": {
+    "name": "Energy flow",
+    "summary": "Live power flow of solar, grid, battery and house, with wallbox, heat pump and the price of the hour.",
+    "tile_name": "Energy flow",
+    "tile_example": "Solar, grid, battery, house, wallbox and heat pump",
+    "solar": "Solar power",
+    "grid": "Grid power",
+    "home": "House consumption",
+    "battery": "Battery power",
+    "soc": "State of charge",
+    "wallbox": "Wallbox power",
+    "car_soc": "Car state of charge",
+    "heatpump": "Heat pump power",
+    "heating": "Heat pump: heating output",
+    "hot_water": "Heat pump: hot water output",
+    "price": "Electricity price",
+    "price_m3": "Price with module 3",
+    "hint_power": "A power sensor in W or kW.",
+    "hint_grid": "W or kW, positive while power comes from the grid.",
+    "hint_home": "W or kW: the house without the wallbox and heat pump, which show as their own branches.",
+    "hint_battery": "W or kW, positive while the battery discharges.",
+    "hint_soc": "In %.",
+    "hint_heat": "Thermal power in W or kW; shown beside the heat pump while it runs.",
+    "hint_price": "In EUR/kWh, shown under the grid in ct.",
+    "hint_price_m3": "In EUR/kWh: the price with the time-of-use grid fee of §14a module 3 (NT 23:00-06:45, HT 08:30-15:15 and 17:15-21:15, January to March and October to December). Leave empty to hide it."
+  }
+}

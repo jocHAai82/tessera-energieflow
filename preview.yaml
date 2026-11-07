@@ -1,0 +1,38 @@
+# Example data for the bench only, not measured values.
+tiles:
+  - tile: flow
+    name: Evening, battery feeds the house
+    sizes: [4x4, 3x3]
+    options: { solar: sensor.pv, grid: sensor.grid, home: sensor.home, battery: sensor.bat, soc: sensor.soc, wallbox: sensor.wb, car_soc: sensor.car, heatpump: sensor.hp, heating: sensor.heat, hot_water: sensor.dhw, price: sensor.price, price_m3: sensor.price_m3 }
+    data:
+      entities:
+        solar: { state: "0", attributes: { unit_of_measurement: W } }
+        grid: { state: "15", attributes: { unit_of_measurement: W } }
+        home: { state: "1180", attributes: { unit_of_measurement: W } }
+        battery: { state: "2350", attributes: { unit_of_measurement: W } }
+        soc: { state: "35", attributes: { unit_of_measurement: "%" } }
+        wallbox: { state: "0.0", attributes: { unit_of_measurement: kW } }
+        car_soc: { state: "78", attributes: { unit_of_measurement: "%" } }
+        heatpump: { state: "1.2", attributes: { unit_of_measurement: kW } }
+        heating: { state: "4.1", attributes: { unit_of_measurement: kW } }
+        hot_water: { state: "0", attributes: { unit_of_measurement: kW } }
+        price: { state: "0.6321", attributes: { unit_of_measurement: EUR/kWh } }
+        price_m3: { state: "0.672", attributes: { unit_of_measurement: EUR/kWh } }
+  - tile: flow
+    name: Noon, solar charges the car and exports
+    sizes: [5x4, 8x6]
+    data:
+      entities:
+        solar: { state: "9800", attributes: { unit_of_measurement: W } }
+        grid: { state: "-2400", attributes: { unit_of_measurement: W } }
+        home: { state: "650", attributes: { unit_of_measurement: W } }
+        battery: { state: "-3100", attributes: { unit_of_measurement: W } }
+        soc: { state: "72", attributes: { unit_of_measurement: "%" } }
+        wallbox: { state: "3.6", attributes: { unit_of_measurement: kW } }
+        car_soc: { state: "54", attributes: { unit_of_measurement: "%" } }
+        heatpump: { state: "0.0", attributes: { unit_of_measurement: kW } }
+        price: { state: "0.4810", attributes: { unit_of_measurement: EUR/kWh } }
+        price_m3: { state: "0.4810", attributes: { unit_of_measurement: EUR/kWh } }
+  - tile: flow
+    name: No sensors yet
+    sizes: [3x3]
