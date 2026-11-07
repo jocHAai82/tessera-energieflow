@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7
+- Laid out as power-flow-card-plus: the wallbox over the house and the heat pump under it, the lines closer together and sweeping round.
+- The house's ring in the colours of what feeds it: the sun, the grid and the battery, each by its share.
+
 ## 0.1.6
 - In each circle the charge or the price over the icon and the power under it, as in the dashboard, in the largest fonts that fit.
 

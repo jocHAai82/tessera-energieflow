@@ -89,31 +89,32 @@ class FlowTile : public tessera::Tile {
       return;
     }
 
-    // The circles: as large as the tile allows, the same for all six, with a line for their names above the top ones and
-    // below the bottom ones.
+    // Three columns and three rows as power-flow-card-plus lays them out: the grid left, the sun over the battery in the
+    // middle, the house right with the wallbox over it and the heat pump under it. The circles as large as the tile
+    // allows, the same for all six, with a line for the names over the top row and under the bottom one.
     const int hn = ui::line_height(Font::BODY);
-    const int by_width = width_ * 11 / 100, by_height = (height_ - 2 * hn) * 15 / 100;
+    const int pad = ui::px(4), gap = ui::px(14);
+    const int by_width = (width_ - 2 * pad - 2 * gap) / 6;
+    const int by_height = (height_ / 2 - hn - pad - gap) / 3;
     radius_ = by_width < by_height ? by_width : by_height;
     const int least = ui::px(26);
     if (radius_ < least) radius_ = least;
-    const int pad = ui::px(4);
     const int border = ui::px(3);
 
-    // Centres in the way power-flow-card-plus lays them out: the grid left, the sun on top, the battery below, the
-    // house in the middle right, and the wallbox and the heat pump as the house's own branches beside it.
-    const int mid = height_ / 2;
-    cx_[GRID] = radius_ + pad;               cy_[GRID] = mid;
-    cx_[SOLAR] = width_ * 40 / 100;          cy_[SOLAR] = hn + radius_ + pad;
-    cx_[BATTERY] = width_ * 40 / 100;        cy_[BATTERY] = height_ - hn - radius_ - pad;
-    cx_[HOME] = width_ * 67 / 100;           cy_[HOME] = mid;
-    cx_[WALLBOX] = width_ - radius_ - pad;   cy_[WALLBOX] = cy_[SOLAR];
-    cx_[HEATPUMP] = width_ - radius_ - pad;  cy_[HEATPUMP] = cy_[BATTERY];
+    const int mid = height_ / 2, top = hn + radius_ + pad, bottom = height_ - hn - radius_ - pad;
+    const int left = radius_ + pad, right = width_ - radius_ - pad, centre = (left + right) / 2;
+    cx_[GRID] = left;      cy_[GRID] = mid;
+    cx_[SOLAR] = centre;   cy_[SOLAR] = top;
+    cx_[BATTERY] = centre; cy_[BATTERY] = bottom;
+    cx_[HOME] = right;     cy_[HOME] = mid;
+    cx_[WALLBOX] = right;  cy_[WALLBOX] = top;
+    cx_[HEATPUMP] = right; cy_[HEATPUMP] = bottom;
 
-    // The lines first, so the circles lie over their ends.
-    const int k = radius_ * 45 / 100;  // how far above and below the middle the sun's and the battery's lines meet the house
+    // The lines first, so the circles lie over their ends. The sun's and the battery's leave their circle a little left
+    // and right of its middle and sweep round into the grid and the house a little over and under the grid's line.
+    const int k = radius_ * 30 / 100;
     const float ek = std::sqrt(float(radius_ * radius_ - k * k));
     set_points(GRID, {pt(cx_[GRID] + radius_, mid), pt(cx_[HOME] - radius_, mid)});
-    // From the sun and the battery: right to the house, left to the grid, and straight between them.
     elbow(SOLAR, cx_[SOLAR] + k, cy_[SOLAR] + ek, mid - k, cx_[HOME] - ek);
     elbow(SOLAR_GRID, cx_[SOLAR] - k, cy_[SOLAR] + ek, mid - k, cx_[GRID] + ek);
     elbow(BATTERY, cx_[BATTERY] + k, cy_[BATTERY] - ek, mid + k, cx_[HOME] - ek);
@@ -160,7 +161,23 @@ class FlowTile : public tessera::Tile {
       lv_obj_set_pos(name_[i], x, over ? cy_[i] - radius_ - pad / 2 - hn : cy_[i] + radius_ + pad / 2);
     }
 
-    // Over the grid: module 3 and its step; under it: the price of the hour.
+    // The house's ring in the colours of what feeds it, each source its share of the circle, as in the dashboard.
+    for (int j = 0; j < 3; ++j) {
+      lv_obj_t *a = lv_arc_create(parent_);
+      lv_obj_remove_style(a, nullptr, LV_PART_KNOB);
+      lv_obj_remove_flag(a, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_set_size(a, d, d);
+      lv_obj_set_pos(a, cx_[HOME] - radius_, cy_[HOME] - radius_);
+      lv_obj_set_style_pad_all(a, 0, LV_PART_MAIN);
+      lv_obj_set_style_bg_opa(a, LV_OPA_TRANSP, LV_PART_MAIN);
+      lv_obj_set_style_arc_opa(a, LV_OPA_TRANSP, LV_PART_MAIN);
+      lv_obj_set_style_arc_width(a, border, LV_PART_INDICATOR);
+      lv_obj_set_style_arc_rounded(a, false, LV_PART_INDICATOR);
+      lv_arc_set_rotation(a, 270);
+      lv_arc_set_bg_angles(a, 0, 360);
+      lv_arc_set_angles(a, 0, 0);
+      ring_[j] = a;
+    }
     // Module 3 centred over the grid's circle, as wide as the room left of it; its step in a smaller font where the large
     // one does not fit. The price of the hour goes in the circle, under the grid's watts.
     const int words = 2 * cx_[GRID];
@@ -171,10 +188,9 @@ class FlowTile : public tessera::Tile {
       lv_obj_set_width(l, words);
       lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
     }
-    const int left = 0;
     const int hv = ui::line_height(m3_font), ht = ui::line_height(Font::BODY);
-    lv_obj_set_pos(m3_value_, left, cy_[GRID] - radius_ - ui::px(4) - hv);
-    lv_obj_set_pos(m3_title_, left, cy_[GRID] - radius_ - ui::px(4) - hv - ht);
+    lv_obj_set_pos(m3_value_, 0, cy_[GRID] - radius_ - ui::px(4) - hv);
+    lv_obj_set_pos(m3_title_, 0, cy_[GRID] - radius_ - ui::px(4) - hv - ht);
 
     // Beside the heat pump: what it makes now, heating or hot water.
     // Left of the heat pump, level with its lower edge, between it and the battery: the house's name stands over it.
@@ -230,7 +246,7 @@ class FlowTile : public tessera::Tile {
       const Reading &r = power_[i];
       const bool shown = any && (r.chosen || i == HOME);
       set_hidden(circle_[i], !shown);
-      set_hidden(name_[i], !shown);
+      set_hidden(name_[i], !shown || (i == HOME && power_[HEATPUMP].chosen));
       if (i == WALLBOX || i == HEATPUMP) set_hidden(line_[i], !shown || !r.chosen);
       if (!shown) continue;
       ui::set_text(value_[i], r.valid ? power_text(r.value, dec) : std::string("–"));
@@ -247,7 +263,7 @@ class FlowTile : public tessera::Tile {
       if (active != active_[i] || !painted_) {
         active_[i] = active;
         if (i == WALLBOX || i == HEATPUMP) lv_obj_set_style_line_color(line_[i], active ? colour(i) : ui::color(theme::TRACK), 0);
-        lv_obj_set_style_border_color(circle_[i], active || i == HOME ? colour(i) : ui::color(theme::TRACK), 0);
+        lv_obj_set_style_border_color(circle_[i], active && i != HOME ? colour(i) : ui::color(theme::TRACK), 0);
       }
     }
 
@@ -331,6 +347,24 @@ class FlowTile : public tessera::Tile {
                                sun_grid, sun_battery, grid_battery + battery_grid};
     const bool shown[LINES] = {s.chosen, g.chosen, false, b.chosen, false, false,
                                s.chosen && g.chosen, s.chosen && b.chosen, g.chosen && b.chosen};
+    // The house's ring: the sun, the grid and the battery, each by its share of what the house takes from them.
+    const float feed[3] = {std::fmax(0.f, flow[SOLAR]), std::fmax(0.f, flow[GRID]), std::fmax(0.f, flow[BATTERY])};
+    const float total = feed[0] + feed[1] + feed[2];
+    int at = 0;
+    float sum = 0.f;
+    for (int j = 0; j < 3; ++j) {
+      sum += feed[j];
+      const int end = any && total >= IDLE_W ? int(sum * 360.f / total + 0.5f) : 0;  // ends add up to the whole ring
+      const int span = end - at;
+      if (span != ring_span_[j] || at != ring_at_[j] || !painted_) {
+        ring_span_[j] = span;
+        ring_at_[j] = at;
+        lv_arc_set_angles(ring_[j], at, at + span);
+        lv_obj_set_style_arc_color(ring_[j], colour(j == 0 ? SOLAR : j == 1 ? GRID : BATTERY), LV_PART_INDICATOR);
+      }
+      set_hidden(ring_[j], span <= 0);
+      at += span;
+    }
     for (int i : {(int) SOLAR, (int) GRID, (int) BATTERY, (int) SOLAR_GRID, (int) SOLAR_BATTERY, (int) GRID_BATTERY}) {
       set_hidden(line_[i], !any || !shown[i]);
       const bool active = flow[i] >= IDLE_W;
@@ -392,12 +426,11 @@ class FlowTile : public tessera::Tile {
   }
 
   // Down (or up) from a circle at x0, a rounded corner at the height yc, and on to x1: the curve of power-flow-card-plus.
-  // The corner is a quadratic curve of CURVE points, as round as the room between the circles allows.
+  // The corner is a quadratic curve of CURVE points, as wide a sweep as the room between the circles allows.
   void elbow(int i, float x0, float y0, float yc, float x1) {
     const float sy = yc >= y0 ? 1.f : -1.f, sx = x1 >= x0 ? 1.f : -1.f;
-    float r = radius_ * 0.8f;
-    if (r > std::fabs(yc - y0)) r = std::fabs(yc - y0);
-    if (r > std::fabs(x1 - x0) / 2) r = std::fabs(x1 - x0) / 2;
+    float r = std::fabs(yc - y0);
+    if (r > std::fabs(x1 - x0) * 0.7f) r = std::fabs(x1 - x0) * 0.7f;
     int j = 0;
     points_[i][j++] = pt(x0, y0);
     const float ax = x0, ay = yc - sy * r, bx = x0 + sx * r, by = yc;  // the corner from (ax, ay) to (bx, by) around (x0, yc)
@@ -474,6 +507,8 @@ class FlowTile : public tessera::Tile {
   lv_point_precise_t points_[LINES][POINTS]{};
   int count_[LINES]{};
   int look_[LINES]{};
+  lv_obj_t *ring_[3]{};
+  int ring_at_[3]{}, ring_span_[3]{};
   lv_obj_t *line_[LINES]{}, *circle_[NODES]{}, *icon_[NODES]{}, *value_[NODES]{}, *extra_[NODES]{}, *name_[NODES]{};
   lv_obj_t *m3_title_{}, *m3_value_{}, *heat_{}, *choose_{};
   Reading power_[NODES], soc_, car_soc_, heating_, hot_water_, price_ct_, price_m3_ct_;
