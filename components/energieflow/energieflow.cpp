@@ -108,8 +108,8 @@ class FlowTile : public tessera::Tile {
     const int k = radius_ * 45 / 100;  // how far above and below the middle the sun's and the battery's lines meet the house
     const float ek = std::sqrt(float(radius_ * radius_ - k * k));
     set_points(GRID, {pt(cx_[GRID] + radius_, mid), pt(cx_[HOME] - radius_, mid)});
-    set_points(SOLAR, {pt(cx_[SOLAR], cy_[SOLAR] + radius_), pt(cx_[SOLAR], mid - k), pt(cx_[HOME] - ek, mid - k)});
-    set_points(BATTERY, {pt(cx_[BATTERY], cy_[BATTERY] - radius_), pt(cx_[BATTERY], mid + k), pt(cx_[HOME] - ek, mid + k)});
+    elbow(SOLAR, cx_[SOLAR], cy_[SOLAR] + radius_, mid - k, cx_[HOME] - ek);
+    elbow(BATTERY, cx_[BATTERY], cy_[BATTERY] - radius_, mid + k, cx_[HOME] - ek);
     branch_points(WALLBOX);
     branch_points(HEATPUMP);
     for (int i = 0; i < NODES; ++i) {
@@ -332,7 +332,25 @@ class FlowTile : public tessera::Tile {
 
   void set_points(int i, std::initializer_list<lv_point_precise_t> pts) {
     int j = 0;
-    for (const auto &p : pts) if (j < 3) points_[i][j++] = p;
+    for (const auto &p : pts) if (j < POINTS) points_[i][j++] = p;
+    count_[i] = j;
+  }
+
+  // Down (or up) from a circle at x0, a rounded corner at the height yc, and on to x1: the curve of power-flow-card-plus.
+  // The corner is a quadratic curve of CURVE points, as round as the room between the circles allows.
+  void elbow(int i, float x0, float y0, float yc, float x1) {
+    const float sy = yc >= y0 ? 1.f : -1.f, sx = x1 >= x0 ? 1.f : -1.f;
+    float r = radius_ * 0.8f;
+    if (r > std::fabs(yc - y0)) r = std::fabs(yc - y0);
+    if (r > std::fabs(x1 - x0) / 2) r = std::fabs(x1 - x0) / 2;
+    int j = 0;
+    points_[i][j++] = pt(x0, y0);
+    const float ax = x0, ay = yc - sy * r, bx = x0 + sx * r, by = yc;  // the corner from (ax, ay) to (bx, by) around (x0, yc)
+    for (int n = 0; n <= CURVE; ++n) {
+      const float t = float(n) / CURVE, u = 1.f - t;
+      points_[i][j++] = pt(u * u * ax + 2 * u * t * x0 + t * t * bx, u * u * ay + 2 * u * t * yc + t * t * by);
+    }
+    points_[i][j++] = pt(x1, yc);
     count_[i] = j;
   }
 
@@ -387,7 +405,8 @@ class FlowTile : public tessera::Tile {
   lv_obj_t *parent_{};
   int width_ = 0, height_ = 0, radius_ = 0;
   int cx_[NODES]{}, cy_[NODES]{};
-  lv_point_precise_t points_[NODES][3]{};
+  static constexpr int CURVE = 8, POINTS = CURVE + 3;
+  lv_point_precise_t points_[NODES][POINTS]{};
   int count_[NODES]{};
   lv_obj_t *line_[NODES]{}, *circle_[NODES]{}, *icon_[NODES]{}, *value_[NODES]{}, *extra_[NODES]{};
   lv_obj_t *m3_title_{}, *m3_value_{}, *price_{}, *heat_{}, *choose_{};

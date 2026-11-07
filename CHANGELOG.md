@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.2
+- The lines of the sun and the battery bend round into the house, as in power-flow-card-plus.
+
 ## 0.1.1
 - The tile takes every size from 1 x 1, so the editor's edges can make it larger: Tessera puts a new plugin tile on in one cell and widens it one edge at a time. Below 3 x 3 it shows the house and the grid.
 
