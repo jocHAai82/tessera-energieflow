@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.4
+- The price of the hour in the grid's circle under its watts; module 3 centred over the circle.
+
 ## 0.1.3
 - Lines from the sun to the grid and to the battery, and between the grid and the battery, split the way power-flow-card-plus splits the power.
 

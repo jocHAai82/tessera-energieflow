@@ -146,19 +146,20 @@ class FlowTile : public tessera::Tile {
     }
 
     // Over the grid: module 3 and its step; under it: the price of the hour.
-    const int words = (cx_[SOLAR] - ui::px(4)) * 2 > d ? d + ui::px(40) : d;
+    // Module 3 centred over the grid's circle, as wide as the room left of it; its step in a smaller font where the large
+    // one does not fit. The price of the hour goes in the circle, under the grid's watts.
+    const int words = 2 * cx_[GRID];
+    const Font m3_font = ui::text_width("HT · 88,8 ct", Font::BODY_LARGE) <= words ? Font::BODY_LARGE : Font::BODY;
     m3_title_ = ui::label(parent_, Font::BODY, theme::MUTED);
-    m3_value_ = ui::label(parent_, Font::BODY_LARGE, theme::INK);
-    price_ = ui::label(parent_, Font::BODY, theme::MUTED);
-    for (lv_obj_t *l : {m3_title_, m3_value_, price_}) {
+    m3_value_ = ui::label(parent_, m3_font, theme::INK);
+    for (lv_obj_t *l : {m3_title_, m3_value_}) {
       lv_obj_set_width(l, words);
       lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
     }
-    const int left = cx_[GRID] - words / 2 < 0 ? 0 : cx_[GRID] - words / 2;
-    const int hv = ui::line_height(Font::BODY_LARGE), ht = ui::line_height(Font::BODY);
+    const int left = 0;
+    const int hv = ui::line_height(m3_font), ht = ui::line_height(Font::BODY);
     lv_obj_set_pos(m3_value_, left, cy_[GRID] - radius_ - ui::px(4) - hv);
     lv_obj_set_pos(m3_title_, left, cy_[GRID] - radius_ - ui::px(4) - hv - ht);
-    lv_obj_set_pos(price_, left, cy_[GRID] + radius_ + ui::px(4));
 
     // Beside the heat pump: what it makes now, heating or hot water.
     heat_ = ui::label(parent_, Font::BODY, theme::MUTED);
@@ -220,6 +221,7 @@ class FlowTile : public tessera::Tile {
       std::string third;
       if (i == BATTERY && soc_.valid) third = number_text(soc_.value, 0, dec, " %");
       if (i == WALLBOX && car_soc_.valid) third = number_text(car_soc_.value, 0, dec, " %");
+      if (i == GRID && price_ct_.valid) third = number_text(price_ct_.value, 1, dec, " ct");
       ui::set_text(extra_[i], third);
       stack(i, !third.empty());
       // A branch that carries power is drawn in its colour, an idle one grey.
@@ -244,7 +246,6 @@ class FlowTile : public tessera::Tile {
     ui::set_text(heat_, heat);
 
     // The price of the hour under the grid, and module 3 with its step over it.
-    ui::set_text(price_, power_[GRID].chosen && price_ct_.valid ? number_text(price_ct_.value, 1, dec, " ct") : "");
     const bool m3 = power_[GRID].chosen && price_m3_ct_.chosen;
     set_hidden(m3_title_, !m3);
     set_hidden(m3_value_, !m3);
@@ -277,7 +278,6 @@ class FlowTile : public tessera::Tile {
       return;
     }
     ui::set_color(m3_title_, theme::MUTED);
-    ui::set_color(price_, theme::MUTED);
     ui::set_color(heat_, theme::MUTED);
     ui::set_color(choose_, theme::MUTED);
     on_tick(tessera::epoch());
@@ -446,7 +446,7 @@ class FlowTile : public tessera::Tile {
   int count_[LINES]{};
   int look_[LINES]{};
   lv_obj_t *line_[LINES]{}, *circle_[NODES]{}, *icon_[NODES]{}, *value_[NODES]{}, *extra_[NODES]{};
-  lv_obj_t *m3_title_{}, *m3_value_{}, *price_{}, *heat_{}, *choose_{};
+  lv_obj_t *m3_title_{}, *m3_value_{}, *heat_{}, *choose_{};
   Reading power_[NODES], soc_, car_soc_, heating_, hot_water_, price_ct_, price_m3_ct_;
   bool active_[NODES]{};
   bool painted_ = false;
