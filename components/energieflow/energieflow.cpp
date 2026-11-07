@@ -132,6 +132,8 @@ class FlowTile : public tessera::Tile {
       lv_obj_set_style_line_rounded(line_[i], true, 0);
       lv_obj_remove_flag(line_[i], LV_OBJ_FLAG_CLICKABLE);
     }
+    // On each line an arrow in its colour, pointing the way the power goes, while the line carries power.
+    for (int i = 0; i < LINES; ++i) if (i != HOME) make_arrow(i, border);
 
     // The circles, each with its icon, its value and a third line where it has one.
     const uint32_t icons[NODES] = {ICON_SOLAR, ICON_GRID, ICON_HOME, ICON_BATTERY, ICON_CAR, ICON_HEATPUMP};
@@ -243,6 +245,7 @@ class FlowTile : public tessera::Tile {
       set_hidden(circle_[i], !shown);
       set_hidden(name_[i], !shown || (i == HOME && power_[HEATPUMP].chosen));
       if (i == WALLBOX || i == HEATPUMP) set_hidden(line_[i], !shown || !r.chosen);
+      if ((i == WALLBOX || i == HEATPUMP) && (!shown || !r.chosen)) set_hidden(arrow_[i], true);
       if (!shown) continue;
       ui::set_text(value_[i], r.valid ? power_text(r.value, dec) : std::string("–"));
       // Grid: export in the grid's blue, import in ink. Everything else in ink.
@@ -274,8 +277,10 @@ class FlowTile : public tessera::Tile {
       if (active != active_[i] || !painted_) {
         active_[i] = active;
         if (i == WALLBOX || i == HEATPUMP) lv_obj_set_style_line_color(line_[i], active ? colour(i) : ui::color(theme::TRACK), 0);
+        if (i == WALLBOX || i == HEATPUMP) point_arrow(i, active, true, colour(i));
         lv_obj_set_style_border_color(circle_[i], active && i != HOME ? colour(i) : ui::color(theme::TRACK), 0);
       }
+      if (i == WALLBOX || i == HEATPUMP) set_hidden(arrow_[i], !(r.chosen && active_[i]));
     }
 
     flows(any);
@@ -370,12 +375,67 @@ class FlowTile : public tessera::Tile {
       set_hidden(line_[i], !any || !shown[i]);
       const bool active = flow[i] >= IDLE_W;
       int hue = i == SOLAR_GRID || i == SOLAR_BATTERY ? SOLAR : i == GRID_BATTERY ? (battery_grid > grid_battery ? BATTERY : GRID) : i;
-      const int look = active ? hue : -1;
+      // The grid and the battery trade either way; every other line runs one way only.
+      const bool forward = i != GRID_BATTERY || battery_grid > grid_battery;
+      const int look = active ? hue * 2 + (forward ? 1 : 0) : -1;
       if (look != look_[i] || !painted_) {
         look_[i] = look;
         lv_obj_set_style_line_color(line_[i], active ? colour(hue) : ui::color(theme::TRACK), 0);
+        point_arrow(i, active && any && shown[i], forward, colour(hue));
       }
+      set_hidden(arrow_[i], !(any && shown[i] && active));
     }
+  }
+
+  // An arrow head on line i: a small triangle drawn as a closed line so thick that it fills, both ways round, at a place
+  // along the line where it crosses nothing (the grid's line and the sun's to the battery cross in the middle).
+  void make_arrow(int i, int border) {
+    if (count_[i] < 2) return;
+    float total = 0.f;
+    for (int j = 1; j < count_[i]; ++j)
+      total += std::hypot(points_[i][j].x - points_[i][j - 1].x, points_[i][j].y - points_[i][j - 1].y);
+    const float size = radius_ * 0.3f;
+    if (total < size * 2.5f) return;  // too short (the wallbox and the heat pump close under the house)
+    const float share = i == GRID ? 0.78f : i == SOLAR_BATTERY ? 0.25f : 0.5f;
+    float want = total * share, x = 0, y = 0, ux = 1, uy = 0;
+    for (int j = 1; j < count_[i]; ++j) {
+      const float dx = points_[i][j].x - points_[i][j - 1].x, dy = points_[i][j].y - points_[i][j - 1].y;
+      const float len = std::hypot(dx, dy);
+      if (len <= 0.f) continue;
+      if (want <= len || j == count_[i] - 1) {
+        const float t = want / len > 1.f ? 1.f : want / len;
+        x = points_[i][j - 1].x + dx * t;
+        y = points_[i][j - 1].y + dy * t;
+        ux = dx / len;
+        uy = dy / len;
+        break;
+      }
+      want -= len;
+    }
+    const float w = size * 0.55f;  // the stroke: thick enough to fill the triangle
+    const float l = (size - w) / 2, h = (size - w) / 2.4f;
+    for (int dir = 0; dir < 2; ++dir) {
+      const float sx = dir ? ux : -ux, sy = dir ? uy : -uy;
+      lv_point_precise_t *a = arrow_pts_[i][dir];
+      a[0] = pt(x + sx * l, y + sy * l);                      // the tip
+      a[1] = pt(x - sx * l - sy * h, y - sy * l + sx * h);
+      a[2] = pt(x - sx * l + sy * h, y - sy * l - sx * h);
+      a[3] = a[0];
+    }
+    arrow_[i] = lv_line_create(parent_);
+    lv_line_set_points(arrow_[i], arrow_pts_[i][1], 4);
+    lv_obj_set_style_line_width(arrow_[i], int(w + 0.5f) > border ? int(w + 0.5f) : border, 0);
+    lv_obj_set_style_line_rounded(arrow_[i], true, 0);
+    lv_obj_remove_flag(arrow_[i], LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(arrow_[i], LV_OBJ_FLAG_HIDDEN);
+  }
+
+  void point_arrow(int i, bool shown, bool forward, lv_color_t c) {
+    if (!arrow_[i]) return;
+    set_hidden(arrow_[i], !shown);
+    if (!shown) return;
+    lv_line_set_points(arrow_[i], arrow_pts_[i][forward ? 1 : 0], 4);
+    lv_obj_set_style_line_color(arrow_[i], c, 0);
   }
 
   // Module 3 of §14a: NT 23:00-06:45, HT 08:30-15:15 and 17:15-21:15, ST in between; only from October to March
@@ -508,6 +568,8 @@ class FlowTile : public tessera::Tile {
   lv_point_precise_t points_[LINES][POINTS]{};
   int count_[LINES]{};
   int look_[LINES]{};
+  lv_obj_t *arrow_[LINES]{};
+  lv_point_precise_t arrow_pts_[LINES][2][4]{};
   lv_obj_t *ring_[3]{};
   int ring_at_[3]{}, ring_span_[3]{};
   lv_obj_t *line_[LINES]{}, *circle_[NODES]{}, *icon_[NODES]{}, *value_[NODES]{}, *extra_[NODES]{}, *name_[NODES]{};

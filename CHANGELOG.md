@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.9
+- An arrow on each line that carries power, pointing the way it flows.
+
 ## 0.1.8
 - The heat pump shows what it makes as its icon (a radiator for heating, a boiler for hot water), the heat over it and its power under it.
 
