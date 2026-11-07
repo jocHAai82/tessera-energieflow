@@ -93,7 +93,8 @@ class FlowTile : public tessera::Tile {
 
     // Three columns and three rows as power-flow-card-plus lays them out: the grid left, the sun over the battery in the
     // middle, the house right with the wallbox over it and the heat pump under it. The circles as large as the tile
-    // allows, the same for all six, with a line for the names over the top row and under the bottom one.
+    // allows, the same for all six (as large as they were with a line of names over and under them), and as far from
+    // the top and the bottom edge as from the sides.
     const int hn = ui::line_height(Font::BODY);
     const int pad = ui::px(4), gap = ui::px(14);
     // A tenth smaller than the room allows, so the lines between them show.
@@ -104,7 +105,7 @@ class FlowTile : public tessera::Tile {
     if (radius_ < least) radius_ = least;
     const int border = ui::px(3);
 
-    const int mid = height_ / 2, top = hn + radius_ + pad, bottom = height_ - hn - radius_ - pad;
+    const int mid = height_ / 2, top = radius_ + pad, bottom = height_ - radius_ - pad;
     const int left = radius_ + pad, right = width_ - radius_ - pad, centre = (left + right) / 2;
     cx_[GRID] = left;      cy_[GRID] = mid;
     cx_[SOLAR] = centre;   cy_[SOLAR] = top;
@@ -151,24 +152,6 @@ class FlowTile : public tessera::Tile {
       extra_[i] = centred(circle_[i], extra_font_, theme::INK, d - 2 * border - ui::px(4));
     }
 
-    // The names, as in the dashboard: over the sun and the wallbox, under the others.
-    const char *names[NODES] = {"name_solar", "name_grid", "name_home", "name_battery", "name_wallbox", "name_heatpump"};
-    for (int i = 0; i < NODES; ++i) {
-      // Centred on the circle: as wide as the room on its narrower side allows, wider only for a name that needs it.
-      const int side = cx_[i] < width_ - cx_[i] ? cx_[i] : width_ - cx_[i];
-      const int need = ui::text_width(plugin_->text(names[i]), Font::BODY) + ui::px(4);
-      int w = d + ui::px(40);
-      if (w > 2 * side) w = 2 * side;
-      if (w < need) w = need;
-      if (w > width_) w = width_;
-      int x = cx_[i] - w / 2;
-      if (x < 0) x = 0;
-      if (x + w > width_) x = width_ - w;
-      name_[i] = centred(parent_, Font::BODY, theme::MUTED, w);
-      ui::set_text(name_[i], plugin_->text(names[i]));
-      const bool over = i == SOLAR || i == WALLBOX;
-      lv_obj_set_pos(name_[i], x, over ? cy_[i] - radius_ - pad / 2 - hn : cy_[i] + radius_ + pad / 2);
-    }
 
     // The house's ring in the colours of what feeds it, each source its share of the circle, as in the dashboard.
     for (int j = 0; j < 3; ++j) {
@@ -252,13 +235,10 @@ class FlowTile : public tessera::Tile {
       const Reading &r = power_[i];
       const bool shown = any && (r.chosen || i == HOME);
       set_hidden(circle_[i], !shown);
-      set_hidden(name_[i], !shown || (i == HOME && power_[HEATPUMP].chosen));
       if (i == WALLBOX || i == HEATPUMP) set_hidden(line_[i], !shown || !r.chosen);
       if ((i == WALLBOX || i == HEATPUMP) && (!shown || !r.chosen)) set_hidden(arrow_[i], true);
       if (!shown) continue;
       ui::set_text(value_[i], r.valid ? power_text(r.value, dec) : std::string("–"));
-      // Grid: export in the grid's blue, import in ink. Everything else in ink.
-      ui::set_color(value_[i], i == GRID && r.valid && r.value < -IDLE_W ? theme::MARK_BLUE : theme::INK);
       std::string third;
       if (i == BATTERY && soc_.valid) third = number_text(soc_.value, 0, dec, " %");
       if (i == WALLBOX && car_soc_.valid) third = number_text(car_soc_.value, 0, dec, " %");
@@ -319,7 +299,7 @@ class FlowTile : public tessera::Tile {
       if (!circle_[i]) continue;
       lv_obj_set_style_bg_color(circle_[i], ui::color(theme::CARD), 0);
       ui::set_color(extra_[i], theme::INK);
-      ui::set_color(name_[i], theme::MUTED);
+      ui::set_color(value_[i], theme::INK);
       lv_obj_set_style_text_color(icon_[i], colour(i), 0);
     }
     if (compact_) {
@@ -587,7 +567,7 @@ class FlowTile : public tessera::Tile {
   lv_point_precise_t arrow_pts_[LINES][2][3]{};
   lv_obj_t *ring_[3]{};
   int ring_at_[3]{}, ring_span_[3]{};
-  lv_obj_t *line_[LINES]{}, *circle_[NODES]{}, *icon_[NODES]{}, *value_[NODES]{}, *extra_[NODES]{}, *name_[NODES]{};
+  lv_obj_t *line_[LINES]{}, *circle_[NODES]{}, *icon_[NODES]{}, *value_[NODES]{}, *extra_[NODES]{};
   lv_obj_t *m3_title_{}, *m3_value_{}, *choose_{};
   uint32_t heat_glyph_ = ICON_HEATPUMP;
   Reading power_[NODES], soc_, car_soc_, heating_, hot_water_, price_ct_, price_m3_ct_;

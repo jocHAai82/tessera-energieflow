@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.15
+- No names at the circles: the icons say it. The circles as far from the top and the bottom edge as from the sides.
+- The grid's power always in ink, exporting too.
+
 ## 0.1.14
 - The arrows of the wallbox and the heat pump in the middle of their line, where it has room.
 
