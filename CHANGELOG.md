@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.8
+- The heat pump shows what it makes as its icon (a radiator for heating, a boiler for hot water), the heat over it and its power under it.
+
 ## 0.1.7
 - Laid out as power-flow-card-plus: the wallbox over the house and the heat pump under it, the lines closer together and sweeping round.
 - The house's ring in the colours of what feeds it: the sun, the grid and the battery, each by its share.

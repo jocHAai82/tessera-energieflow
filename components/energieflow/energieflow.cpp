@@ -19,6 +19,8 @@ constexpr uint32_t ICON_HOME = 0xF02DC;      // home
 constexpr uint32_t ICON_BATTERY = 0xF1901;   // home-battery
 constexpr uint32_t ICON_CAR = 0xF0B6C;       // car-electric
 constexpr uint32_t ICON_HEATPUMP = 0xF1A43;  // heat-pump
+constexpr uint32_t ICON_HEATING = 0xF0438;   // radiator
+constexpr uint32_t ICON_HOT_WATER = 0xF0F92; // water-boiler
 
 // Below this many watts a branch counts as idle: its line goes grey.
 constexpr float IDLE_W = 20.f;
@@ -192,13 +194,6 @@ class FlowTile : public tessera::Tile {
     lv_obj_set_pos(m3_value_, 0, cy_[GRID] - radius_ - ui::px(4) - hv);
     lv_obj_set_pos(m3_title_, 0, cy_[GRID] - radius_ - ui::px(4) - hv - ht);
 
-    // Beside the heat pump: what it makes now, heating or hot water.
-    // Left of the heat pump, level with its lower edge, between it and the battery: the house's name stands over it.
-    heat_ = ui::label(parent_, Font::BODY, theme::MUTED);
-    const int heat_right = cx_[HEATPUMP] - radius_ - ui::px(6), heat_left = cx_[BATTERY] + radius_ + ui::px(6);
-    lv_obj_set_width(heat_, heat_right > heat_left ? heat_right - heat_left : 0);
-    lv_obj_set_style_text_align(heat_, LV_TEXT_ALIGN_RIGHT, 0);
-    lv_obj_set_pos(heat_, heat_left, cy_[HEATPUMP] + radius_ - ht);
 
     // Until sensors are chosen.
     choose_ = ui::label(parent_, Font::BODY, theme::MUTED);
@@ -256,6 +251,22 @@ class FlowTile : public tessera::Tile {
       if (i == BATTERY && soc_.valid) third = number_text(soc_.value, 0, dec, " %");
       if (i == WALLBOX && car_soc_.valid) third = number_text(car_soc_.value, 0, dec, " %");
       if (i == GRID && price_ct_.valid) third = number_text(price_ct_.value, 1, dec, " ct");
+      // The heat pump: its icon says what it makes now (a radiator for heating, a boiler for hot water), the line over
+      // it how much heat; the heat pump's own icon while it makes none.
+      if (i == HEATPUMP) {
+        uint32_t glyph = ICON_HEATPUMP;
+        if (hot_water_.valid && hot_water_.value >= IDLE_W) {
+          glyph = ICON_HOT_WATER;
+          third = power_text(hot_water_.value, dec);
+        } else if (heating_.valid && heating_.value >= IDLE_W) {
+          glyph = ICON_HEATING;
+          third = power_text(heating_.value, dec);
+        }
+        if (glyph != heat_glyph_) {
+          heat_glyph_ = glyph;
+          ui::set_text(icon_[HEATPUMP], ui::icon(glyph));
+        }
+      }
       ui::set_text(extra_[i], third);
       stack(i, !third.empty());
       // A branch that carries power is drawn in its colour, an idle one grey.
@@ -269,15 +280,6 @@ class FlowTile : public tessera::Tile {
 
     flows(any);
 
-    // The heat pump's heating or hot water, while it makes some.
-    std::string heat;
-    if (power_[HEATPUMP].chosen) {
-      if (hot_water_.valid && hot_water_.value >= IDLE_W)
-        heat = std::string(plugin_->text("hot_water_short")) + " " + power_text(hot_water_.value, dec);
-      else if (heating_.valid && heating_.value >= IDLE_W)
-        heat = std::string(plugin_->text("heating_short")) + " " + power_text(heating_.value, dec);
-    }
-    ui::set_text(heat_, heat);
 
     // The price of the hour under the grid, and module 3 with its step over it.
     const bool m3 = power_[GRID].chosen && price_m3_ct_.chosen;
@@ -313,7 +315,6 @@ class FlowTile : public tessera::Tile {
       return;
     }
     ui::set_color(m3_title_, theme::MUTED);
-    ui::set_color(heat_, theme::MUTED);
     ui::set_color(choose_, theme::MUTED);
     on_tick(tessera::epoch());
   }
@@ -510,7 +511,8 @@ class FlowTile : public tessera::Tile {
   lv_obj_t *ring_[3]{};
   int ring_at_[3]{}, ring_span_[3]{};
   lv_obj_t *line_[LINES]{}, *circle_[NODES]{}, *icon_[NODES]{}, *value_[NODES]{}, *extra_[NODES]{}, *name_[NODES]{};
-  lv_obj_t *m3_title_{}, *m3_value_{}, *heat_{}, *choose_{};
+  lv_obj_t *m3_title_{}, *m3_value_{}, *choose_{};
+  uint32_t heat_glyph_ = ICON_HEATPUMP;
   Reading power_[NODES], soc_, car_soc_, heating_, hot_water_, price_ct_, price_m3_ct_;
   bool active_[NODES]{};
   bool painted_ = false;
