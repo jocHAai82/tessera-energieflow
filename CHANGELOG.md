@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.16
+- Fix: the arrow to the wallbox and the heat pump was left out where their line is short.
+
 ## 0.1.15
 - No names at the circles: the icons say it. The circles as far from the top and the bottom edge as from the sides.
 - The grid's power always in ink, exporting too.
