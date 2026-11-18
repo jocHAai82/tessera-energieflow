@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.17
+- Plugin API 0.27: Tessera 0.4.98 takes an entity option's default only from 0.27, and left the plugin out without it.
+
 ## 0.1.16
 - Fix: the arrow to the wallbox and the heat pump was left out where their line is short.
 
