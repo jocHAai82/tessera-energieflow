@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.18
+- Module 3 over the grid without the price, which the supplier's price under the grid now carries: an arrow for the step's effect (down NT, across ST, up HT) beside its name, in the step's colour.
+
 ## 0.1.17
 - Plugin API 0.27: Tessera 0.4.98 takes an entity option's default only from 0.27, and left the plugin out without it.
 

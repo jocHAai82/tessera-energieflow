@@ -45,6 +45,6 @@
     "hint_soc": "In %.",
     "hint_heat": "Thermal power in W or kW; shown beside the heat pump while it runs.",
     "hint_price": "In EUR/kWh, shown under the grid in ct.",
-    "hint_price_m3": "In EUR/kWh: the price with the time-of-use grid fee of §14a module 3 (NT 23:00-06:45, HT 08:30-15:15 and 17:15-21:15, January to March and October to December). Leave empty to hide it."
+    "hint_price_m3": "Turns on the module 3 line over the grid: an arrow and the step NT, ST or HT of the time-of-use grid fee of §14a (NT 23:00-06:45, HT 08:30-15:15 and 17:15-21:15, January to March and October to December). Leave empty to hide it."
   }
 }

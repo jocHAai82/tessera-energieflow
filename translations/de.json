@@ -45,6 +45,6 @@
     "hint_soc": "In %.",
     "hint_heat": "Thermische Leistung in W oder kW; erscheint neben der Wärmepumpe, solange sie läuft.",
     "hint_price": "In EUR/kWh, unter dem Netz in ct angezeigt.",
-    "hint_price_m3": "In EUR/kWh: der Preis mit dem zeitvariablen Netzentgelt nach §14a Modul 3 (NT 23:00–06:45, HT 08:30–15:15 und 17:15–21:15, Januar bis März und Oktober bis Dezember). Leer lassen zum Ausblenden."
+    "hint_price_m3": "Schaltet über dem Netz die Zeile Modul 3 ein: ein Pfeil und die Stufe NT, ST oder HT des zeitvariablen Netzentgelts nach §14a (NT 23:00–06:45, HT 08:30–15:15 und 17:15–21:15, Januar bis März und Oktober bis Dezember). Leer lassen zum Ausblenden."
   }
 }

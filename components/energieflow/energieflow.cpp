@@ -21,6 +21,9 @@ constexpr uint32_t ICON_CAR = 0xF0B6C;       // car-electric
 constexpr uint32_t ICON_HEATPUMP = 0xF1A43;  // heat-pump
 constexpr uint32_t ICON_HEATING = 0xF0438;   // radiator
 constexpr uint32_t ICON_HOT_WATER = 0xF0F92; // water-boiler
+constexpr uint32_t ICON_ARROW_DOWN = 0xF0045;      // arrow-down: NT, cheaper
+constexpr uint32_t ICON_ARROW_RIGHT = 0xF0054;     // arrow-right: ST
+constexpr uint32_t ICON_ARROW_TOP_RIGHT = 0xF005C; // arrow-top-right: HT, dearer
 
 // Below this many watts a branch counts as idle: its line goes grey.
 constexpr float IDLE_W = 20.f;
@@ -174,20 +177,24 @@ class FlowTile : public tessera::Tile {
     // circles, as the wallbox's and the heat pump's sit on the house's ring.
     for (int i = 0; i < LINES; ++i) if (i != HOME) make_arrow(i, border);
 
-    // Module 3 centred over the grid's circle, as wide as the room left of it; its step in a smaller font where the large
+    // Module 3 centred over the grid's circle, as wide as the room left of it: its title, and under it an arrow for the
+    // step's effect on the price (down NT, across ST, up HT) beside the step's name, in a smaller font where the large
     // one does not fit. The price of the hour goes in the circle, under the grid's watts.
-    const int words = 2 * cx_[GRID];
-    const Font m3_font = ui::text_width("HT · 88,8 ct", Font::BODY_LARGE) <= words ? Font::BODY_LARGE : Font::BODY;
+    m3_words_ = 2 * cx_[GRID];
+    m3_icon_h_ = ui::line_height(Font::ICON_SMALL);
+    m3_font_ = ui::text_width("HT", Font::BODY_LARGE) + m3_icon_h_ + ui::px(4) <= m3_words_ ? Font::BODY_LARGE : Font::BODY;
     m3_title_ = ui::label(parent_, Font::BODY, theme::MUTED);
-    m3_value_ = ui::label(parent_, m3_font, theme::INK);
-    for (lv_obj_t *l : {m3_title_, m3_value_}) {
-      lv_obj_set_width(l, words);
-      lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
-    }
-    const int hv = ui::line_height(m3_font), ht = ui::line_height(Font::BODY);
-    lv_obj_set_pos(m3_value_, 0, cy_[GRID] - radius_ - ui::px(4) - hv);
-    lv_obj_set_pos(m3_title_, 0, cy_[GRID] - radius_ - ui::px(4) - hv - ht);
-
+    lv_obj_set_width(m3_title_, m3_words_);
+    lv_obj_set_style_text_align(m3_title_, LV_TEXT_ALIGN_CENTER, 0);
+    m3_value_ = ui::label(parent_, m3_font_, theme::INK);
+    m3_arrow_ = ui::label(parent_, Font::ICON_SMALL, theme::INK);
+    lv_obj_set_width(m3_arrow_, m3_icon_h_);
+    lv_obj_set_style_text_align(m3_arrow_, LV_TEXT_ALIGN_CENTER, 0);
+    m3_value_h_ = ui::line_height(m3_font_);
+    const int ht = ui::line_height(Font::BODY);
+    m3_y_ = cy_[GRID] - radius_ - ui::px(4) - m3_value_h_;
+    lv_obj_set_pos(m3_title_, 0, m3_y_ - ht);
+    m3_step_ = -2;  // laid out on the first tick
 
     // Until sensors are chosen.
     choose_ = ui::label(parent_, Font::BODY, theme::MUTED);
@@ -275,20 +282,33 @@ class FlowTile : public tessera::Tile {
     flows(any);
 
 
-    // The price of the hour under the grid, and module 3 with its step over it.
+    // Module 3 over the grid: its title, and the step with an arrow for what it does to the price.
     const bool m3 = power_[GRID].chosen && price_m3_ct_.chosen;
+    const int step = step_of(epoch);  // 0 NT, 1 ST, 2 HT, -1 while the clock is not set
     set_hidden(m3_title_, !m3);
-    set_hidden(m3_value_, !m3);
-    if (m3) {
+    set_hidden(m3_value_, !m3 || step < 0);
+    set_hidden(m3_arrow_, !m3 || step < 0);
+    if (m3 && step >= 0) {
       ui::set_text(m3_title_, plugin_->text("module3"));
-      int step = step_of(epoch);  // 0 NT, 1 ST, 2 HT, -1 while the clock is not set
-      std::string words = step < 0 ? std::string() : std::string(plugin_->text(step == 0 ? "nt" : step == 1 ? "st" : "ht"));
-      if (price_m3_ct_.valid) {
-        if (!words.empty()) words += " · ";
-        words += number_text(price_m3_ct_.value, 1, dec, " ct");
+      const char *word = plugin_->text(step == 0 ? "nt" : step == 1 ? "st" : "ht");
+      ui::set_text(m3_value_, word);
+      const uint32_t glyph = step == 0 ? ICON_ARROW_DOWN : step == 2 ? ICON_ARROW_TOP_RIGHT : ICON_ARROW_RIGHT;
+      if (glyph != m3_glyph_) {
+        m3_glyph_ = glyph;
+        ui::set_text(m3_arrow_, ui::icon(glyph));
       }
-      ui::set_text(m3_value_, words);
-      ui::set_tone(m3_value_, step == 0 ? Tone::GOOD : step == 2 ? Tone::ALERT : Tone::ACCENT, theme::INK);
+      const Tone tone = step == 0 ? Tone::GOOD : step == 2 ? Tone::ALERT : Tone::ACCENT;
+      ui::set_tone(m3_value_, tone, theme::INK);
+      ui::set_tone(m3_arrow_, tone, theme::INK);
+      if (step != m3_step_) {
+        // The arrow and the word together, centred over the circle; from our own coordinates.
+        m3_step_ = step;
+        const int gap = ui::px(4), tw = ui::text_width(word, m3_font_);
+        const int x = (m3_words_ - (m3_icon_h_ + gap + tw)) / 2;
+        lv_obj_set_pos(m3_arrow_, x, m3_y_ + (m3_value_h_ - m3_icon_h_) / 2);
+        lv_obj_set_width(m3_value_, tw + ui::px(2));
+        lv_obj_set_pos(m3_value_, x + m3_icon_h_ + gap, m3_y_);
+      }
     }
     painted_ = true;
   }
@@ -568,7 +588,10 @@ class FlowTile : public tessera::Tile {
   lv_obj_t *ring_[3]{};
   int ring_at_[3]{}, ring_span_[3]{};
   lv_obj_t *line_[LINES]{}, *circle_[NODES]{}, *icon_[NODES]{}, *value_[NODES]{}, *extra_[NODES]{};
-  lv_obj_t *m3_title_{}, *m3_value_{}, *choose_{};
+  lv_obj_t *m3_title_{}, *m3_value_{}, *m3_arrow_{}, *choose_{};
+  int m3_words_ = 0, m3_y_ = 0, m3_icon_h_ = 0, m3_value_h_ = 0, m3_step_ = -2;
+  uint32_t m3_glyph_ = 0;
+  Font m3_font_ = Font::BODY;
   uint32_t heat_glyph_ = ICON_HEATPUMP;
   Reading power_[NODES], soc_, car_soc_, heating_, hot_water_, price_ct_, price_m3_ct_;
   bool active_[NODES]{};
